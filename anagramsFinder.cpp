@@ -7,6 +7,8 @@
  *   Put a '?' at the front of the siteswap to only output the count   *
  ***********************************************************************/
 
+#define restrict __restrict__
+
 #define MAX_PERIOD 100
 #define MAX_HEIGHT 36 //'z' is 35
 
@@ -16,7 +18,7 @@
 #define ss2int(c) (('0' <= c && c <= '9')? c-'0' : c-'a'+10)
 #define int2ss(i) ((i < 10)? i+'0' : i+'a'-10)
 
-void getAnagrams(int *ss, int *options, int *lands, int minRot, int done, int period);
+void getAnagrams(int * restrict ss, int * restrict options, int * restrict lands, int minRot, int done, int period);
 void printAnagrams(char *ss);
 
 unsigned long long nAnagrams;
@@ -89,7 +91,7 @@ char *getSS(int* ip, int period)
 	return sss;
 }
 
-void getAnagrams(int *ss, int *options, int *lands, int minRot, int done, int period)
+void getAnagrams(int * restrict ss, int * restrict options, int * restrict lands, int minRot, int done, int period)
 {
 	int f = ss[0];
 	for (int i = 0; i < MAX_HEIGHT; i++)
