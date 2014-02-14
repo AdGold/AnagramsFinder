@@ -42,7 +42,7 @@ int main (int argc, char* argv[])
 
 void printAnagrams(char *ss)
 {
-nAnagrams = 0;
+	nAnagrams = 0;
 	print = (ss[0] != '?');
 	ss += !print;
 
@@ -53,75 +53,75 @@ nAnagrams = 0;
 	int options[MAX_HEIGHT];
 	memset(options, 0, MAX_HEIGHT*sizeof(int));
 	for (int i = 0; i < period; i++)
-            options[ss2int(ss[i])]++;
+		options[ss2int(ss[i])]++;
 
-        int m = MAX_PERIOD, mp = -1;
-        for (int i = 0; i < MAX_HEIGHT; i++)
-        {
-            if (options[i] && options[i] <= m) { m = options[i]; mp = i; }
-        }
-        options[mp]--;
+	int m = MAX_PERIOD, mp = -1;
+	for (int i = 0; i < MAX_HEIGHT; i++)
+	{
+	    if (options[i] && options[i] <= m) { m = options[i]; mp = i; }
+	}
+	options[mp]--;
 
-        int siteswap[period+1];
-        siteswap[0] = MAX_HEIGHT; //for rotation check of ss[-1]
-        siteswap[1] = mp;
+	int siteswap[period+1];
+	siteswap[0] = MAX_HEIGHT; //for rotation check of ss[-1]
+	siteswap[1] = mp;
 
-        int lands[period];
-        memset(lands, 0, sizeof(lands));
-        lands[modP[mp]]=1;
+	int lands[period];
+	memset(lands, 0, sizeof(lands));
+	lands[modP[mp]]=1;
 
-        getAnagrams(siteswap+1, options, lands,  -1,1, period);
+	getAnagrams(siteswap+1, options, lands,  -1,1, period);
 
-        if (period == 1 && print)
-        {
-            printf("%s\n", ss);
-            nAnagrams++;
-        }
-        if (!print)
-            printf("Total of %llu anagram%s.\n", nAnagrams, (nAnagrams==1)?"":"s");
+	if (period == 1 && print)
+	{
+		printf("%s\n", ss);
+		nAnagrams++;
+	}
+	if (!print)
+		printf("Total of %llu anagram%s.\n", nAnagrams, (nAnagrams==1)?"":"s");
 }
 
 char sss[MAX_PERIOD];
 char *getSS(int* ip, int period)
 {
-    for (int i = 0; i < period; i++)sss[i] = int2ss(ip[i]);
-    sss[period] = '\0';
+	for (int i = 0; i < period; i++)sss[i] = int2ss(ip[i]);
+	sss[period] = '\0';
 	return sss;
 }
 
 void getAnagrams(int *ss, int *options, int *lands, int minRot, int done, int period)
 {
-    int f = ss[0];
-    for (int i = 0; i < MAX_HEIGHT; i++)
-    {
-        if ((options[i] < 1) | lands[modP[i + done]] | (i > ss[minRot]) )continue;
-        ss[done] = i;
+	int f = ss[0];
+	for (int i = 0; i < MAX_HEIGHT; i++)
+	{
+		if ((options[i] < 1) | lands[modP[i + done]] | (i > ss[minRot]) ) continue;
+		ss[done] = i;
 
-        int newMinRot = minRot + (minRot > 0);
-        if (ss[minRot] > i) newMinRot = -1;
-	if ((newMinRot <= 0) & (i == f)) newMinRot = 1;
+		int newMinRot = minRot + (minRot > 0);
+		if (ss[minRot] > i) newMinRot = -1;
+		if ((newMinRot <= 0) & (i == f)) newMinRot = 1;
 
-        if (done+1 == period)
-        {
-        	int good = 1;
-        	if (newMinRot != -1)
-        	{
-        		for (int j = 0; j < period; j++, newMinRot=modP[newMinRot+1])
-        		{
-        			if (ss[j] > ss[newMinRot]) { good = 0; break; }
-        			else if (ss[j] < ss[newMinRot]) break;
-        		}
-        	}
-        	if (good & print) printf("%s\n", getSS(ss,period));
+		if (done+1 == period)
+		{
+			int good = 1;
+			if (newMinRot != -1)
+			{
+				for (int j = 0; j < period; j++, newMinRot=modP[newMinRot+1])
+				{
+					if (ss[j] > ss[newMinRot]) { good = 0; break; }
+					else if (ss[j] < ss[newMinRot]) break;
+				}
+			}
+			if (good & print) printf("%s\n", getSS(ss,period));
 			nAnagrams += good;
-        }
-        else
-        {
-            options[i]--;
-            lands[modP[i + done]]++;
-            getAnagrams(ss, options, lands, newMinRot, done+1, period);
-            options[i]++;
-            lands[modP[i + done]]--;
-        }
-    }
+		}
+		else
+		{
+			options[i]--;
+			lands[modP[i + done]]++;
+			getAnagrams(ss, options, lands, newMinRot, done+1, period);
+			options[i]++;
+			lands[modP[i + done]]--;
+		}
+	}
 }
