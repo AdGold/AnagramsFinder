@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Siteswap Anagram Finder</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            padding: 1em;
+            background-color: #f8f9fa;
+            color: #212529;
+        }
+        #container {
+            max-width: 650px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 2em;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #343a40;
+        }
+        input[type="text"] {
+            width: calc(100% - 24px);
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #controls {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        #controls label {
+            margin-left: 8px;
+            user-select: none;
+        }
+        #results-container {
+            margin-top: 20px;
+        }
+        #timer {
+            font-style: italic;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        #results {
+            padding: 15px;
+            border: 1px solid #e9ecef;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="container">
+        <h1>Siteswap Anagram Finder</h1>
+        <p>Enter a siteswap to find all its valid, unique anagrams. For example, try "741" or "12345".</p>
+        <input type="text" id="siteswapInput" placeholder="e.g., 741" onkeydown="if(event.key==='Enter') findAnagrams()">
+        <div id="controls">
+            <input type="checkbox" id="countOnlyCheckbox">
+            <label for="countOnlyCheckbox">Only count anagrams (faster)</label>
+        </div>
+        <button onclick="findAnagrams()">Find Anagrams</button>
+        <div id="results-container">
+            <p id="timer"></p>
+            <div id="results">
+                <p>Results will be displayed here.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const MAX_HEIGHT = 36; // 'z' corresponds to 35
+
+        function ss2int(char) {
+            return parseInt(char, 36);
+        }
+
+        function int2ss(num) {
+            return num.toString(36);
+        }
+
+        let nAnagrams;
+        let resultsArray;
+
+        /**
+         * The main recursive function to find anagrams.
+         * This version correctly implements pruning to find only the lexicographically
+         * smallest rotation of each anagram pattern.
+         *
+         * @param {number[]} ss - The current siteswap permutation being built.
+         * @param {number[]} options - Frequency map of available throws.
+         * @param {boolean[]} lands - Array to track landing sites of props.
+         * @param {number} minRot - The index for comparing against the rotation. -1 means inactive.
+         * @param {number} done - Number of throws placed so far.
+         * @param {number} period - The length of the siteswap.
+         * @param {boolean} shouldPrint - Whether to store the anagrams for printing.
+         */
+        function getAnagrams(ss, options, lands, minRot, done, period, shouldPrint) {
+            const f = ss[0]; // The very first throw of this permutation.
+
+            for (let i = 0; i < MAX_HEIGHT; i++) {
+                // Pruning Checks:
+                // 1. Is the throw `i` available? (options[i] > 0)
+                // 2. Is the landing site for `i` already taken? (lands[(i + done) % period])
+                // 3. Rotational Pruning: If we are comparing rotations (minRot !== -1) and the
+                //    current throw `i` is greater than the throw at the comparison index `ss[minRot]`,
+                //    then this permutation is not the lexicographically smallest, so we prune this branch.
+                if (options[i] === 0 || lands[(i + done) % period] || (minRot !== -1 && i > ss[minRot])) {
+                    continue;
+                }
+
+                ss[done] = i;
+                
+                let newMinRot;
+                if (minRot === -1) {
+                    // If not comparing, start comparing only if the current throw `i` matches the first throw `f`.
+                    newMinRot = (i === f) ? 1 : -1;
+                } else {
+                    // If we are comparing:
+                    if (i < ss[minRot]) {
+                        // This permutation is lexicographically smaller than the one starting with `f`.
+                        // This means the one starting with `f` is not the minimal rotation, so we can stop comparing.
+                        newMinRot = -1;
+                    } else { // i must be equal to ss[minRot] because of the pruning condition `i > ss[minRot]`.
+                        // The tie continues, so we advance the comparison index for the next recursion.
+                        newMinRot = minRot + 1;
+                    }
+                }
+
+                if (done + 1 === period) {
+                    // If we have successfully built a full permutation, the pruning logic guarantees
+                    // it is the lexicographically smallest of all its rotations.
+                    nAnagrams++;
+                    if (shouldPrint) {
+                        resultsArray.push(ss.map(int2ss).join(''));
+                    }
+                } else {
+                    // Recurse
+                    options[i]--;
+                    lands[(i + done) % period] = true;
+                    getAnagrams(ss, options, lands, newMinRot, done + 1, period, shouldPrint);
+                    // Backtrack
+                    options[i]++;
+                    lands[(i + done) % period] = false;
+                }
+            }
+        }
+        
+        function findAnagrams() {
+            const ssString = document.getElementById('siteswapInput').value.trim().toLowerCase();
+            const resultsDiv = document.getElementById('results');
+            const timerDiv = document.getElementById('timer');
+            const countOnly = document.getElementById('countOnlyCheckbox').checked;
+            
+            resultsDiv.innerHTML = '<p>Calculating...</p>';
+            timerDiv.innerHTML = '';
+
+            setTimeout(() => {
+                const startTime = performance.now();
+                
+                nAnagrams = 0;
+                resultsArray = [];
+                const shouldPrint = !countOnly;
+
+                if (!ssString) {
+                    resultsDiv.innerHTML = '<p>Please enter a siteswap.</p>';
+                    return;
+                }
+                
+                const period = ssString.length;
+
+                const options = new Array(MAX_HEIGHT).fill(0);
+                let siteswapSum = 0;
+                for (let i = 0; i < period; i++) {
+                    const val = ss2int(ssString[i]);
+                    if (isNaN(val) || val >= MAX_HEIGHT) {
+                         resultsDiv.innerHTML = `<p>Error: Invalid character '${ssString[i]}' in siteswap.</p>`;
+                         return;
+                    }
+                    options[val]++;
+                    siteswapSum += val;
+                }
+                
+                if (siteswapSum % period !== 0) {
+                     resultsDiv.innerHTML = `<p>Invalid siteswap: The sum of throws (${siteswapSum}) is not divisible by the period (${period}).</p>`;
+                     return;
+                }
+                
+                let firstThrow = -1;
+                for (let i = 0; i < MAX_HEIGHT; i++) {
+                    if (options[i] > 0) {
+                        firstThrow = i;
+                        break;
+                    }
+                }
+                
+                if (firstThrow === -1) {
+                    resultsDiv.innerHTML = `<p>No throws found in siteswap.</p>`;
+                    return;
+                }
+
+                options[firstThrow]--;
+
+                const siteswap = new Array(period).fill(0);
+                siteswap[0] = firstThrow;
+
+                const lands = new Array(period).fill(false);
+                lands[firstThrow % period] = true;
+                
+                if (period === 1) {
+                     nAnagrams = 1;
+                     if(shouldPrint) resultsArray.push(ssString);
+                } else {
+                    getAnagrams(siteswap, options, lands, -1, 1, period, shouldPrint);
+                }
+
+                const endTime = performance.now();
+                const timeTaken = ((endTime - startTime) / 1000).toFixed(3);
+                timerDiv.innerHTML = `Found in ${timeTaken} seconds.`;
+
+                if (shouldPrint) {
+                    resultsDiv.innerHTML = `<strong>Found ${nAnagrams} unique anagrams for "${ssString}":</strong>\n\n${resultsArray.join('\n')}`;
+                } else {
+                    resultsDiv.innerHTML = `<strong>Total of ${nAnagrams} unique anagrams found for "${ssString}".</strong>`;
+                }
+            }, 10);
+        }
+    </script>
+</body>
+</html>
